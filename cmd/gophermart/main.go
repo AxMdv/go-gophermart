@@ -1,3 +1,37 @@
 package main
 
-func main() {}
+import (
+	"context"
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/AxMdv/go-gophermart/internal/config"
+	"github.com/AxMdv/go-gophermart/internal/handlers"
+	"github.com/AxMdv/go-gophermart/internal/router"
+	"github.com/AxMdv/go-gophermart/internal/service/accrual"
+	"github.com/AxMdv/go-gophermart/internal/storage"
+)
+
+func main() {
+	cfg := config.ParseOptions()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	repository, err := storage.NewRepository(ctx, cfg)
+	if err != nil {
+		log.Panic("Failed to init repository ", err)
+	}
+
+	accrualService := accrual.New(repository)
+
+	handlers := handlers.New(accrualService)
+
+	router := router.New(handlers)
+
+	err = http.ListenAndServe(cfg.RunAddr, router)
+	if err != nil {
+		log.Panic(err)
+	}
+}
