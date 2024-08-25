@@ -10,11 +10,11 @@ type User struct {
 }
 
 type Order struct {
-	ID         int
+	ID         string
 	UserUUID   string
 	Status     string
 	Accrual    int32
-	UploadedAt time.Time
+	UploadedAt string
 }
 
 type Balance struct {
@@ -27,3 +27,10 @@ type Withdrawn struct {
 	Amount      float32
 	ProcessedAt time.Time
 }
+
+var (
+	OrderStatusRegistered = "REGISTERED"
+	OrderStatusInvalid    = "INVALID"
+	OrderStatusProcessing = "PROCESSING"
+	OrderStatusProcessed  = "PROCESSED"
+)

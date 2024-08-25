@@ -126,21 +126,32 @@ func (h *Handlers) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := auth.GetUUIDFromContext(r.Context())
-	// if !ok {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
-	// fmt.Println(id)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
 	order := &model.Order{
 		UserUUID: id,
-		ID:       orderID,
+		ID:       strconv.Itoa(orderID),
+		Status:   model.OrderStatusRegistered,
 	}
-	err = h.accrualService.CreateOrder(ctx, order)
 
-	w.WriteHeader(http.StatusOK)
+	err = h.accrualService.CreateOrder(ctx, order)
+	if err != nil {
+		if errors.Is(err, accrual.ErrOrderCreatedByCurrentUser) {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if errors.Is(err, accrual.ErrOrderCreatedByAnotherUser) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	// err = h.accrualService.
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *Handlers) GetOrdersInfo(w http.ResponseWriter, r *http.Request)      {}
