@@ -58,4 +58,4 @@ func (a *AccrualService) RewardRequest(order *model.Order, addr string) error {
 }
 
 var ErrOrderNotRegistered = errors.New("204")
-var ErrTooManyRequests = errors.New("429")
+var ErrTooManyRequests = errors.New("429 should sleep all goroutines")
