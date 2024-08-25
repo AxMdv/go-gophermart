@@ -26,7 +26,7 @@ func main() {
 
 	accrualService := accrual.New(repository)
 
-	handlers := handlers.New(accrualService)
+	handlers := handlers.New(accrualService, cfg)
 
 	router := router.New(handlers)
 

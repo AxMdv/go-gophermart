@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/AxMdv/go-gophermart/internal/config"
 	"github.com/AxMdv/go-gophermart/internal/model"
 	"github.com/AxMdv/go-gophermart/internal/service/accrual"
 	"github.com/AxMdv/go-gophermart/internal/service/auth"
@@ -18,10 +20,11 @@ import (
 
 type Handlers struct {
 	accrualService *accrual.AccrualService
+	config         *config.Options
 }
 
-func New(a *accrual.AccrualService) *Handlers {
-	return &Handlers{accrualService: a}
+func New(a *accrual.AccrualService, c *config.Options) *Handlers {
+	return &Handlers{accrualService: a, config: c}
 }
 
 func (h *Handlers) RegisterUser(w http.ResponseWriter, r *http.Request) {
@@ -150,7 +153,8 @@ func (h *Handlers) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	// err = h.accrualService.
+	err = h.accrualService.RewardRequest(order, h.config.AccrualSystemAddr+"/api/orders/"+order.ID)
+	fmt.Println(err)
 	w.WriteHeader(http.StatusAccepted)
 }
 
