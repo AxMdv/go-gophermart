@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -23,6 +24,7 @@ func GzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
 		if sendsGzip {
 			cr, err := compressor.NewCompressReader(r.Body)
 			if err != nil {
+				log.Println(err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}

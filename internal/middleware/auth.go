@@ -20,6 +20,8 @@ func ValidateUserMiddleware(h http.HandlerFunc) http.HandlerFunc {
 		if !valid || err != nil {
 			// кука не валидна
 			log.Println("cookie is not valid or error during validation of cookie", err)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
 		}
 		// c айди все ок - передаём в контексте реквеста айди
 		id := auth.GetIDFromCookie(cookie.Value)

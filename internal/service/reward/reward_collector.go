@@ -1,4 +1,4 @@
-package accrual
+package reward
 
 import (
 	"encoding/json"
@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/AxMdv/go-gophermart/internal/model"
+	"github.com/AxMdv/go-gophermart/internal/storage"
 )
 
 //	func asd() {
@@ -20,7 +21,25 @@ type RewardResponse struct {
 	Accrual float32 `json:"accrual"`
 }
 
-func (a *AccrualService) RewardRequest(order *model.Order, addr string) error {
+type RewardCollector struct {
+	repository storage.DBRepository
+}
+
+var InputCh chan (model.Order)
+
+var Semaphore chan struct{}
+
+func (rc *RewardCollector) Run() error {
+	inputCh := make(chan model.Order)
+	defer close(inputCh)
+	return nil
+}
+
+func (rc *RewardCollector) Go(input <-chan model.Order, result chan<- string) {
+	select {}
+}
+
+func (rc *RewardCollector) RewardRequest(order *model.Order, addr string) error {
 	// url := addr + "/api/orders/"
 	req, err := http.NewRequest(http.MethodGet, addr, nil)
 	if err != nil {

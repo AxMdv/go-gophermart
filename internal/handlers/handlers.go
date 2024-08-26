@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -81,23 +80,20 @@ func (h *Handlers) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := auth.GetUUIDFromContext(r.Context())
-
-	user.UUID = id
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err = h.accrualService.LoginUser(ctx, &user)
+	userID, err := h.accrualService.LoginUser(ctx, &user)
 	if err != nil {
 		if errors.Is(err, accrual.ErrInvalidAuthData) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
 		return
 	}
-	cookie := auth.CreateCookie(id)
+	cookie := auth.CreateCookie(userID)
 
 	http.SetCookie(w, cookie)
 	w.WriteHeader(http.StatusOK)
@@ -153,12 +149,37 @@ func (h *Handlers) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err = h.accrualService.RewardRequest(order, h.config.AccrualSystemAddr+"/api/orders/"+order.ID)
-	fmt.Println(err)
+	// err = h.accrualService.RewardRequest(order, h.config.AccrualSystemAddr+"/api/orders/"+order.ID)
+	// fmt.Println(err)
 	w.WriteHeader(http.StatusAccepted)
 }
 
-func (h *Handlers) GetOrdersInfo(w http.ResponseWriter, r *http.Request)      {}
+func (h *Handlers) GetOrdersInfo(w http.ResponseWriter, r *http.Request) {
+	id := auth.GetUUIDFromContext(r.Context())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+	orders, err := h.accrualService.GetOrdersByUserID(ctx, id)
+	if err != nil {
+		if errors.Is(err, storage.ErrNoOrders) {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	resp, err := json.Marshal(orders)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
+
 func (h *Handlers) GetWithdrawalsInfo(w http.ResponseWriter, r *http.Request) {}
 func (h *Handlers) GetUserBalance(w http.ResponseWriter, r *http.Request)     {}
 func (h *Handlers) CreateWithdraw(w http.ResponseWriter, r *http.Request)     {}

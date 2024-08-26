@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -121,7 +122,7 @@ func (dr *DBRepository) GetUserAuthData(ctx context.Context, reqUser *model.User
 	dbUser = &model.User{}
 	query := `
 	SELECT user_login, user_password, user_uuid 
-	FROM users WHERE login = $1`
+	FROM users WHERE user_login = $1`
 	row := dr.db.QueryRow(ctx, query, reqUser.Login)
 	err = row.Scan(&dbUser.Login, &dbUser.Password, &dbUser.UUID)
 	if err != nil {
@@ -164,6 +165,33 @@ func (dr *DBRepository) CreateOrder(ctx context.Context, order *model.Order) err
 		return err
 	}
 	return nil
+}
+
+func (dr *DBRepository) GetOrdersByUserID(ctx context.Context, userID string) ([]model.Order, error) {
+	orders := make([]model.Order, 0, 10)
+	query := `SELECT order_id, order_status, order_accrual, order_uploaded_at
+	FROM orders WHERE user_uuid = $1
+	ORDER BY order_uploaded_at DESC;`
+	rows, _ := dr.db.Query(ctx, query, userID)
+	defer rows.Close()
+
+	for rows.Next() {
+		var order model.Order
+		var accrual sql.NullFloat64
+		err := rows.Scan(&order.ID, &order.Status, &accrual, &order.UploadedAt)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil, ErrNoOrders
+			}
+			return nil, err
+		}
+		if accrual.Valid {
+			order.Accrual = accrual.Float64
+		}
+		orders = append(orders, order)
+	}
+
+	return orders, nil
 }
 
 // func (dr *DBRepository) (ctx context.Context, user *model.User) error {}
