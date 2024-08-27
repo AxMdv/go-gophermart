@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	"github.com/AxMdv/go-gophermart/internal/model"
-	"github.com/AxMdv/go-gophermart/internal/storage"
 )
 
 //	func asd() {
@@ -22,7 +21,7 @@ type RewardResponse struct {
 }
 
 type RewardCollector struct {
-	repository storage.DBRepository
+	// repository storage.DBRepository
 }
 
 var InputCh chan (model.Order)
@@ -56,6 +55,7 @@ func (rc *RewardCollector) RewardRequest(order *model.Order, addr string) error 
 	switch resp.StatusCode {
 	case 200:
 		bytes, err := io.ReadAll(resp.Body)
+		defer resp.Body.Close()
 		if err != nil {
 			log.Println(err)
 			return err
