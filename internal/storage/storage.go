@@ -61,8 +61,8 @@ func (dr *DBRepository) createUsersDB(ctx context.Context) error {
 				user_login varchar NOT NULL,
 				user_password varchar NOT NULL,
 				user_uuid varchar NOT NULL,
-				user_balance numeric(8, 2),
-				user_withdrawn numeric(8, 2),
+				user_balance numeric(8, 2) DEFAULT 0,
+				user_withdrawn numeric(8, 2) DEFAULT 0, 
 				CONSTRAINT users_pk PRIMARY KEY (user_uuid),
 				CONSTRAINT login_unique UNIQUE (user_login)
 				);`
@@ -192,6 +192,18 @@ func (dr *DBRepository) GetOrdersByUserID(ctx context.Context, userID string) ([
 	}
 
 	return orders, nil
+}
+
+func (dr *DBRepository) GetUserBalance(ctx context.Context, userID string) (*model.Balance, error) {
+	query := `
+	SELECT user_balance, user_withdrawn
+	FROM users
+	WHERE user_uuid = $1`
+	row := dr.db.QueryRow(ctx, query, userID)
+
+	balance := model.Balance{}
+	err := row.Scan(&balance.Current, &balance.Withdrawn)
+	return &balance, err
 }
 
 // func (dr *DBRepository) (ctx context.Context, user *model.User) error {}

@@ -16,7 +16,7 @@ func New(h *handlers.Handlers) *chi.Mux {
 		r.Get("/withdrawals", h.GetWithdrawalsInfo)
 
 		r.Route("/balance", func(r chi.Router) {
-			r.Get("/", h.GetUserBalance)
+			r.Get("/", mw.ValidateUserMiddleware(h.GetUserBalance))
 			r.Post("/withdraw", h.CreateWithdraw)
 		})
 	})

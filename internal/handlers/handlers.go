@@ -181,5 +181,26 @@ func (h *Handlers) GetOrdersInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) GetWithdrawalsInfo(w http.ResponseWriter, r *http.Request) {}
-func (h *Handlers) GetUserBalance(w http.ResponseWriter, r *http.Request)     {}
-func (h *Handlers) CreateWithdraw(w http.ResponseWriter, r *http.Request)     {}
+
+func (h *Handlers) GetUserBalance(w http.ResponseWriter, r *http.Request) {
+
+	id := auth.GetUUIDFromContext(r.Context())
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+	balance, err := h.accrualService.GetUserBalance(ctx, id)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	resp, err := json.Marshal(balance)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
+
+func (h *Handlers) CreateWithdraw(w http.ResponseWriter, r *http.Request) {}
