@@ -18,15 +18,16 @@ type Order struct {
 }
 
 type Balance struct {
-	// UserUUID  string
+	UserUUID  string
 	Current   float64 `json:"current"`
 	Withdrawn float64 `json:"withdrawn"`
 }
 
-type Withdrawn struct {
-	OrderID     string
-	Amount      float64
-	ProcessedAt time.Time
+type Withdrawal struct {
+	UserUUID    string
+	OrderID     string    `json:"order"`
+	Amount      float64   `json:"sum"`
+	ProcessedAt time.Time `json:"processed_at"`
 }
 
 var (

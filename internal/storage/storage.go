@@ -41,65 +41,13 @@ func NewRepository(ctx context.Context, config *config.Options) (*DBRepository, 
 	if err != nil {
 		return &dbRepository, err
 	}
+	err = dbRepository.createWithdrawalsDB(ctx)
+	if err != nil {
+		return &dbRepository, err
+	}
 	return &dbRepository, nil
 }
 
-func (dr *DBRepository) createUsersDB(ctx context.Context) error {
-	var tableName string
-	query1 := `
-	SELECT table_name
-	FROM information_schema.tables
-	WHERE table_schema = 'public'
-	AND table_name = 'users'
-	LIMIT 1;`
-	row := dr.db.QueryRow(ctx, query1)
-	err := row.Scan(&tableName)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			query2 := `
-				CREATE TABLE users (
-				user_login varchar NOT NULL,
-				user_password varchar NOT NULL,
-				user_uuid varchar NOT NULL,
-				user_balance numeric(8, 2) DEFAULT 0,
-				user_withdrawn numeric(8, 2) DEFAULT 0, 
-				CONSTRAINT users_pk PRIMARY KEY (user_uuid),
-				CONSTRAINT login_unique UNIQUE (user_login)
-				);`
-			_, err := dr.db.Exec(ctx, query2)
-			return err
-		}
-	}
-	return err
-}
-
-func (dr *DBRepository) createOrdersDB(ctx context.Context) error {
-	var tableName string
-	query1 := `
-	SELECT table_name
-	FROM information_schema.tables
-	WHERE table_schema = 'public'
-	AND table_name = 'orders'
-	LIMIT 1;`
-	row := dr.db.QueryRow(ctx, query1)
-	err := row.Scan(&tableName)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			query2 := `
-				CREATE TABLE orders (
-				user_uuid varchar REFERENCES users ON DELETE CASCADE,
-				order_id varchar NOT NULL,
-				order_status varchar NOT NULL,
-				order_uploaded_at timestamp with time zone NOT NULL,
-				order_accrual numeric(8, 2),
-				CONSTRAINT orders_pk PRIMARY KEY (order_id)
-				);`
-			_, err := dr.db.Exec(ctx, query2)
-			return err
-		}
-	}
-	return err
-}
 func (dr *DBRepository) RegisterUser(ctx context.Context, user *model.User) error {
 	query := `
 	INSERT INTO users (user_login, user_password, user_uuid)
@@ -206,6 +154,62 @@ func (dr *DBRepository) GetUserBalance(ctx context.Context, userID string) (*mod
 	return &balance, err
 }
 
-// func (dr *DBRepository) (ctx context.Context, user *model.User) error {}
+func (dr *DBRepository) GetWithdrawalsByUserID(ctx context.Context, userID string) ([]model.Withdrawal, error) {
+	query := `
+	SELECT order_id, processed_at, amount
+	FROM withdrawals
+	WHERE user_uuid = $1
+	ORDER BY processed_at DESC;`
+	rows, _ := dr.db.Query(ctx, query, userID)
+	defer rows.Close()
+
+	withdrawals := make([]model.Withdrawal, 0, 5)
+	for rows.Next() {
+		var wdwl model.Withdrawal
+		err := rows.Scan(&wdwl.OrderID, &wdwl.ProcessedAt, &wdwl.Amount)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil, ErrNoWithdrawalsData
+			}
+			return nil, err
+		}
+		withdrawals = append(withdrawals, wdwl)
+
+	}
+	return withdrawals, nil
+
+}
+
+func (dr *DBRepository) CreateWithdraw(ctx context.Context, balance *model.Balance, withdrawal *model.Withdrawal) error {
+	query1 := `
+	UPDATE users (user_balance, user_withdrawn)
+	VALUES $1, $2
+	WHERE user_uuid = $3;`
+
+	query2 := `
+	INSERT INTO withdrawals (order_id, user_uuid, processed_at, amount) 
+	VALUES $1, $2, $3, $4;`
+
+	tx, err := dr.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, query1, balance.Current, balance.Withdrawn, balance.UserUUID)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(ctx, query2, withdrawal.OrderID, withdrawal.UserUUID, withdrawal.ProcessedAt, withdrawal.Amount)
+	if err != nil {
+		return tx.Rollback(ctx)
+	}
+
+	return tx.Commit(ctx)
+	// dr.db.Exec(ctx, query1, balance.Current, balance.Withdrawn, balance.UserUUID)
+
+}
+
 // func (dr *DBRepository) (ctx context.Context, user *model.User) error {}
 // func (dr *DBRepository) (ctx context.Context, user *model.User) error {}

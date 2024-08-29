@@ -180,7 +180,29 @@ func (h *Handlers) GetOrdersInfo(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-func (h *Handlers) GetWithdrawalsInfo(w http.ResponseWriter, r *http.Request) {}
+func (h *Handlers) GetWithdrawalsInfo(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUUIDFromContext(r.Context())
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	withdrawals, err := h.accrualService.GetWithdrawalsInfo(ctx, userID)
+	if err != nil {
+		if errors.Is(err, storage.ErrNoWithdrawalsData) {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	resp, err := json.Marshal(withdrawals)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
 
 func (h *Handlers) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 
@@ -199,8 +221,55 @@ func (h *Handlers) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }
 
-func (h *Handlers) CreateWithdraw(w http.ResponseWriter, r *http.Request) {}
+func (h *Handlers) CreateWithdraw(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != "application/json" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	var withdrawal model.Withdrawal
+	err = json.Unmarshal(bodyBytes, &withdrawal)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	orderID, err := strconv.Atoi(withdrawal.OrderID)
+	if err != nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		return
+	}
+
+	valid := h.accrualService.ValidateOrderID(orderID)
+	if !valid {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		return
+	}
+
+	withdrawal.UserUUID = auth.GetUUIDFromContext(r.Context())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	err = h.accrualService.CreateWithdraw(ctx, &withdrawal)
+	if err != nil {
+		if errors.Is(err, accrual.ErrLowBalance) {
+			w.WriteHeader(http.StatusPaymentRequired)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+
+	}
+}

@@ -13,11 +13,11 @@ func New(h *handlers.Handlers) *chi.Mux {
 		r.Post("/login", mw.GzipMiddleware((h.LoginUser)))
 		r.Post("/orders", mw.ValidateUserMiddleware(mw.GzipMiddleware(h.CreateOrder)))
 		r.Get("/orders", mw.ValidateUserMiddleware(mw.GzipMiddleware(h.GetOrdersInfo)))
-		r.Get("/withdrawals", h.GetWithdrawalsInfo)
+		r.Get("/withdrawals", mw.ValidateUserMiddleware(h.GetWithdrawalsInfo))
 
 		r.Route("/balance", func(r chi.Router) {
 			r.Get("/", mw.ValidateUserMiddleware(h.GetUserBalance))
-			r.Post("/withdraw", h.CreateWithdraw)
+			r.Post("/withdraw", mw.ValidateUserMiddleware(h.CreateWithdraw))
 		})
 	})
 	// r.Get("/api/orders/{number}", h.Asdas)
