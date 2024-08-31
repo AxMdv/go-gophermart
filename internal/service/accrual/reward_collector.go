@@ -113,6 +113,7 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) error {
 			log.Println(err)
 			return err
 		}
+
 		switch resp.StatusCode {
 		case 200:
 			bytes, err := io.ReadAll(resp.Body)
@@ -130,12 +131,19 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) error {
 			switch rr.Status {
 			case model.OrderStatusRegistered:
 				fmt.Println("retry")
+				continue
 			case model.OrderStatusInvalid:
 				return ErrOrderNotRegistered
 			case model.OrderStatusProcessing:
-				fmt.Println("retry")
-			case model.OrderStatusProcessed:
 
+				fmt.Println("retry")
+				continue
+			case model.OrderStatusProcessed:
+				fmt.Println(rr.Status)
+				continue
+			default:
+				fmt.Println(rr.Status)
+				continue
 			}
 
 		case 204:
@@ -144,9 +152,10 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) error {
 			time.Sleep(60 * time.Second)
 		default:
 			fmt.Println("default branch .. status code is ", resp.StatusCode)
+			return errors.New("unexpected error")
 		}
 	}
-	return nil
+	return err
 }
 
 func NewRewardCollectionProcess() *Queue {
