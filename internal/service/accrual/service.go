@@ -5,9 +5,10 @@ import (
 )
 
 type AccrualService struct {
-	repository *storage.DBRepository
+	repository  *storage.DBRepository
+	RewardQueue *Queue
 }
 
-func New(dbRepository *storage.DBRepository) *AccrualService {
-	return &AccrualService{repository: dbRepository}
+func New(dbRepository *storage.DBRepository, queue *Queue) *AccrualService {
+	return &AccrualService{repository: dbRepository, RewardQueue: queue}
 }

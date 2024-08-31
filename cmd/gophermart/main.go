@@ -24,7 +24,9 @@ func main() {
 		log.Panic("Failed to init repository ", err)
 	}
 
-	accrualService := accrual.New(repository)
+	queue := accrual.NewRewardCollectionProcess()
+
+	accrualService := accrual.New(repository, queue)
 
 	handlers := handlers.New(accrualService, cfg)
 

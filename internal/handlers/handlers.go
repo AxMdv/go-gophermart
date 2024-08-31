@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -149,8 +150,17 @@ func (h *Handlers) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	// accrual.InputCh <- order
+
 	// err = h.accrualService.RewardRequest(order, h.config.AccrualSystemAddr+"/api/orders/"+order.ID)
-	// fmt.Println(err)
+
+	task := &accrual.Task{
+		Order: order,
+		Addr:  h.config.AccrualSystemAddr + "/api/orders/" + order.ID,
+	}
+	h.accrualService.RewardQueue.Push(task)
+	fmt.Println(err)
 	w.WriteHeader(http.StatusAccepted)
 }
 
