@@ -127,12 +127,23 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) error {
 				log.Println(err)
 				return err
 			}
+			switch rr.Status {
+			case model.OrderStatusRegistered:
+				fmt.Println("retry")
+			case model.OrderStatusInvalid:
+				return ErrOrderNotRegistered
+			case model.OrderStatusProcessing:
+				fmt.Println("retry")
+			case model.OrderStatusProcessed:
+
+			}
+
 		case 204:
 			return ErrOrderNotRegistered
 		case 429:
 			time.Sleep(60 * time.Second)
 		default:
-			fmt.Println("default")
+			fmt.Println("default branch .. status code is ", resp.StatusCode)
 		}
 	}
 	return nil
