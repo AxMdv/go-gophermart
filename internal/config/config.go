@@ -12,23 +12,23 @@ type Options struct {
 }
 
 func ParseOptions() *Options {
-	Options := Options{}
-	flag.StringVar(&Options.RunAddr, "a", "localhost:8080", "address and port to run server")
-	flag.StringVar(&Options.DataBaseURI, "d", "user=postgres password=adm dbname=postgres host=localhost port=5432 sslmode=disable", "dsn for acees to DB")
-	flag.StringVar(&Options.AccrualSystemAddr, "r", "", "address of accrural system")
+	options := Options{}
+	flag.StringVar(&options.RunAddr, "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(&options.DataBaseURI, "d", "user=postgres password=adm dbname=postgres host=localhost port=5432 sslmode=disable", "dsn for acees to DB")
+	flag.StringVar(&options.AccrualSystemAddr, "r", "", "address of accrural system")
 
 	flag.Parse()
 
-	if envRunAddr := os.Getenv("RUN_ADDRESS"); envRunAddr != "" {
-		Options.RunAddr = envRunAddr
+	if envRunAddr, found := os.LookupEnv("RUN_ADDRESS"); envRunAddr != "" && found {
+		options.RunAddr = envRunAddr
 	}
 	if envDataBaseURI := os.Getenv("DATABASE_URI"); envDataBaseURI != "" {
-		Options.DataBaseURI = envDataBaseURI
+		options.DataBaseURI = envDataBaseURI
 	}
-	if envAccrualSystemAddr := os.Getenv("ACCRUAL_SYSTEM_ADDRES"); envAccrualSystemAddr != "" {
-		Options.AccrualSystemAddr = envAccrualSystemAddr
+	if envAccrualSystemAddr, found := os.LookupEnv("ACCRUAL_SYSTEM_ADDRES"); envAccrualSystemAddr != "" && found {
+		options.AccrualSystemAddr = envAccrualSystemAddr
 	}
-	return &Options
+	return &options
 }
 
 //dsn := "user=postgres password=adm dbname=postgres host=localhost port=5432 sslmode=disable"
