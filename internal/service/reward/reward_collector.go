@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/AxMdv/go-gophermart/internal/model"
@@ -143,6 +144,9 @@ func (r *Requester) RegisterOrder(orderID string) error {
 func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardResponse, error) {
 
 	rr := &RewardResponse{}
+	if !strings.HasPrefix(addr, "http://") {
+		addr = fmt.Sprintf("http://%s", addr)
+	}
 	url := addr + "/api/orders/" + order.ID
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -240,6 +244,9 @@ func RewardRegister(addr string) error {
 		return err
 	}
 	rdr := bytes.NewReader(body)
+	if !strings.HasPrefix(addr, "http://") {
+		addr = fmt.Sprintf("http://%s", addr)
+	}
 	req, err := http.NewRequest(http.MethodPost, addr, rdr)
 	req.Header.Add("Content-Type", "application/json")
 	if err != nil {
