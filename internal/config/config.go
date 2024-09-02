@@ -19,13 +19,13 @@ func ParseOptions() *Options {
 
 	flag.Parse()
 
-	if envRunAddr, found := os.LookupEnv("RUN_ADDRESS"); envRunAddr != "" && found {
+	if envRunAddr, found := os.LookupEnv("RUN_ADDRESS"); (envRunAddr != "") && found {
 		options.RunAddr = envRunAddr
 	}
 	if envDataBaseURI := os.Getenv("DATABASE_URI"); envDataBaseURI != "" {
 		options.DataBaseURI = envDataBaseURI
 	}
-	if envAccrualSystemAddr, found := os.LookupEnv("ACCRUAL_SYSTEM_ADDRES"); envAccrualSystemAddr != "" && found {
+	if envAccrualSystemAddr, found := os.LookupEnv("ACCRUAL_SYSTEM_ADDRES"); (envAccrualSystemAddr != "") && found {
 		options.AccrualSystemAddr = envAccrualSystemAddr
 	}
 	return &options

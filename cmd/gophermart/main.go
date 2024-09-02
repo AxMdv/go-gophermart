@@ -16,7 +16,7 @@ import (
 
 func main() {
 	cfg := config.ParseOptions()
-	log.Println("options parsed", cfg)
+	log.Println("options parsed", cfg, cfg.AccrualSystemAddr)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
