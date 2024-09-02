@@ -25,7 +25,7 @@ func ParseOptions() *Options {
 	if envDataBaseURI := os.Getenv("DATABASE_URI"); envDataBaseURI != "" {
 		options.DataBaseURI = envDataBaseURI
 	}
-	if envAccrualSystemAddr, found := os.LookupEnv("ACCRUAL_SYSTEM_ADDRES"); (envAccrualSystemAddr != "") && found {
+	if envAccrualSystemAddr, found := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS"); (envAccrualSystemAddr != "") && found {
 		options.AccrualSystemAddr = envAccrualSystemAddr
 	}
 	return &options
