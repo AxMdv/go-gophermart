@@ -101,7 +101,7 @@ func (w *Worker) Loop() {
 			log.Printf("error: %v\n", err)
 			break
 		}
-		log.Printf("worker #%d done request %v\n", w.id, t.Order)
+		log.Printf("worker #%d done request %v %v\n", w.id, t.Order, order)
 	}
 }
 

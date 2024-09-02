@@ -19,7 +19,7 @@ func ParseOptions() *Options {
 
 	flag.Parse()
 
-	if envRunAddr, found := os.LookupEnv("RUN_ADDRESS"); (envRunAddr != "") && found {
+	if envRunAddr, found := os.LookupEnv("RUN_ADDRESS"); envRunAddr != "" && found {
 		options.RunAddr = envRunAddr
 	}
 	if envDataBaseURI := os.Getenv("DATABASE_URI"); envDataBaseURI != "" {

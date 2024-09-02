@@ -12,7 +12,7 @@ func New(h *handlers.Handlers) *chi.Mux {
 		r.Post("/register", mw.GzipMiddleware((h.RegisterUser)))
 		r.Post("/login", mw.GzipMiddleware((h.LoginUser)))
 		r.Post("/orders", mw.ValidateUserMiddleware(mw.GzipMiddleware(h.CreateOrder)))
-		r.Get("/orders", mw.ValidateUserMiddleware(mw.GzipMiddleware(h.GetOrdersInfo)))
+		r.Get("/orders", mw.ValidateUserMiddleware(h.GetOrdersInfo))
 		r.Get("/withdrawals", mw.ValidateUserMiddleware(h.GetWithdrawalsInfo))
 
 		r.Route("/balance", func(r chi.Router) {
