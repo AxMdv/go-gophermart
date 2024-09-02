@@ -215,16 +215,16 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardRespo
 func NewRewardCollectionProcess(addr string, repository *storage.DBRepository) (*Queue, error) {
 
 	queue := NewQueue()
-	err := RewardRegister(fmt.Sprintf("%s/api/goods", addr))
-	if err != nil {
-		return &Queue{}, err
-	}
+	// err := RewardRegister(fmt.Sprintf("%s/api/goods", addr))
+	// if err != nil {
+	// 	return &Queue{}, err
+	// }
 
 	for i := 0; i < numberWorkers; i++ {
 		w := NewWorker(i, queue, NewRequester(addr), repository)
 		go w.Loop()
 	}
-	return queue, err
+	return queue, nil
 }
 
 type Match struct {
