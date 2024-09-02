@@ -1,80 +1,257 @@
 package reward
 
-// import (
-// 	"encoding/json"
-// 	"errors"
-// 	"fmt"
-// 	"io"
-// 	"log"
-// 	"net/http"
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"time"
 
-// 	"github.com/AxMdv/go-gophermart/internal/model"
-// )
+	"github.com/AxMdv/go-gophermart/internal/model"
+	"github.com/AxMdv/go-gophermart/internal/storage"
+)
 
-// //	func asd() {
-// //		inputCh := make(chan model.Order)
-// //	}
-// type RewardResponse struct {
-// 	Order   string  `json:"order"`
-// 	Status  string  `json:"status"`
-// 	Accrual float32 `json:"accrual"`
-// }
+type RewardResponse struct {
+	Order   string  `json:"order"`
+	Status  string  `json:"status"`
+	Accrual float64 `json:"accrual"`
+}
 
-// type RewardCollector struct {
-// 	// repository storage.DBRepository
-// }
+var numberWorkers = 10
 
-// var InputCh chan (model.Order)
+type Task struct {
+	Order *model.Order
+	Addr  string
+}
 
-// var Semaphore chan struct{}
+type Queue struct {
+	ch chan *Task
+}
 
-// func (rc *RewardCollector) Run() error {
-// 	inputCh := make(chan model.Order)
-// 	defer close(inputCh)
-// 	return nil
-// }
+func NewQueue() *Queue {
+	return &Queue{
+		ch: make(chan *Task, 10),
+	}
+}
 
-// func (rc *RewardCollector) Go(input <-chan model.Order, result chan<- string) {
-// 	select {}
-// }
+func (q *Queue) Push(t *Task) {
+	// добавляем задачу в очередь
+	q.ch <- t
+}
 
-// func (rc *RewardCollector) RewardRequest(order *model.Order, addr string) error {
-// 	// url := addr + "/api/orders/"
-// 	req, err := http.NewRequest(http.MethodGet, addr, nil)
-// 	if err != nil {
-// 		log.Println(err)
-// 		return err
-// 	}
+func (q *Queue) PopWait() *Task {
+	// получаем задачу
+	return <-q.ch
+}
 
-// 	client := &http.Client{}
-// 	resp, err := client.Do(req)
-// 	if err != nil {
-// 		log.Println(err)
-// 		return err
-// 	}
-// 	switch resp.StatusCode {
-// 	case 200:
-// 		bytes, err := io.ReadAll(resp.Body)
-// 		defer resp.Body.Close()
-// 		if err != nil {
-// 			log.Println(err)
-// 			return err
-// 		}
-// 		var rr RewardResponse
-// 		err = json.Unmarshal(bytes, &rr)
-// 		if err != nil {
-// 			log.Println(err)
-// 			return err
-// 		}
-// 	case 204:
-// 		return ErrOrderNotRegistered
-// 	case 429:
-// 		return ErrTooManyRequests
-// 	default:
-// 		fmt.Println("default")
-// 	}
-// 	return nil
-// }
+type Requester struct {
+	accrualAddr string
+}
 
-// var ErrOrderNotRegistered = errors.New("204")
-// var ErrTooManyRequests = errors.New("429 should sleep all goroutines")
+func NewRequester(addr string) *Requester {
+	return &Requester{
+		accrualAddr: addr,
+	}
+}
+
+type Worker struct {
+	id         int
+	queue      *Queue
+	requester  *Requester
+	repository *storage.DBRepository
+}
+
+func NewWorker(id int, queue *Queue, requester *Requester, repo *storage.DBRepository) *Worker {
+	w := Worker{
+		id:         id,
+		queue:      queue,
+		requester:  requester,
+		repository: repo,
+	}
+	return &w
+}
+
+func (w *Worker) Loop() {
+	for {
+		t := w.queue.PopWait()
+		err := w.requester.RegisterOrder(t.Order.ID)
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
+			continue
+		}
+		resp, err := w.requester.RewardRequest(t.Order, t.Addr)
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
+			break
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		order := &model.Order{
+			UserUUID: t.Order.UserUUID,
+			Accrual:  resp.Accrual,
+			Status:   resp.Status,
+		}
+		err = w.repository.UpdateUserBalance(ctx, order)
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
+			break
+		}
+		fmt.Printf("worker #%d done request %v\n", w.id, t.Order)
+	}
+}
+
+type RegisterOrders struct {
+	OrderID string `json:"order"`
+	Goods   []Good `json:"goods"`
+}
+
+type Good struct {
+	Description string `json:"description"`
+	Price       int    `json:"price"`
+}
+
+func (r *Requester) RegisterOrder(orderID string) error {
+	addr := fmt.Sprintf("%s/api/orders", r.accrualAddr)
+	reqBody := &RegisterOrders{
+		OrderID: orderID,
+		Goods:   []Good{{Description: "Bork чайник", Price: 100}},
+	}
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return err
+	}
+	rdr := bytes.NewReader(body)
+	req, err := http.NewRequest(http.MethodPost, addr, rdr)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Попытка зарегать ", addr, reqBody, resp.StatusCode)
+	return err
+}
+
+func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardResponse, error) {
+
+	rr := &RewardResponse{}
+	url := fmt.Sprintf(addr + "/api/orders/" + order.ID)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		log.Println(err)
+		return rr, err
+	}
+
+	client := &http.Client{}
+
+	loop := true
+
+	for loop {
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Println(err)
+			return rr, err
+		}
+
+		switch resp.StatusCode {
+		case 200:
+			bytes, err := io.ReadAll(resp.Body)
+			defer resp.Body.Close()
+			if err != nil {
+				log.Println(err)
+				return rr, err
+			}
+			var rr RewardResponse
+			err = json.Unmarshal(bytes, &rr)
+			if err != nil {
+				log.Println(err)
+				return &rr, err
+			}
+
+			switch rr.Status {
+			case model.OrderStatusRegistered:
+				fmt.Println("retry..")
+				continue
+			case model.OrderStatusInvalid:
+				return &rr, ErrOrderNotRegistered
+			case model.OrderStatusProcessing:
+				fmt.Println("retry..")
+				continue
+			case model.OrderStatusProcessed:
+				fmt.Println(rr.Status)
+
+				return &rr, nil
+
+			default:
+				fmt.Println(rr.Status, "default")
+				continue
+			}
+
+		case 204:
+			return rr, ErrOrderNotRegistered
+		case 429:
+			time.Sleep(60 * time.Second)
+		default:
+			fmt.Println("default branch .. status code is ", resp.StatusCode)
+			return rr, errors.New("unexpected error")
+		}
+
+	}
+	return rr, err
+}
+
+func NewRewardCollectionProcess(addr string, repository *storage.DBRepository) (*Queue, error) {
+
+	queue := NewQueue()
+	err := RewardRegister(fmt.Sprintf("%s/api/goods", addr))
+	if err != nil {
+		return &Queue{}, err
+	}
+
+	for i := 0; i < numberWorkers; i++ {
+		w := NewWorker(i, queue, NewRequester(addr), repository)
+		go w.Loop()
+	}
+	return queue, err
+}
+
+type Match struct {
+	Match       string `json:"match"`
+	Reward      int    `json:"reward"`
+	Reward_type string `json:"reward_type"`
+}
+
+func RewardRegister(addr string) error {
+	match := &Match{
+		Match:       "Bork",
+		Reward:      10,
+		Reward_type: "%",
+	}
+	body, err := json.Marshal(match)
+	if err != nil {
+		return err
+	}
+	rdr := bytes.NewReader(body)
+	req, err := http.NewRequest(http.MethodPost, addr, rdr)
+	req.Header.Add("Content-Type", "application/json")
+	if err != nil {
+		return err
+	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Попытка зарегать 10 % вознаграждения", resp.StatusCode)
+	return err
+}
+
+var ErrOrderNotRegistered = errors.New("204")
+var ErrTooManyRequests = errors.New("429 should sleep all goroutines")

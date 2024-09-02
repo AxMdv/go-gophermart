@@ -15,6 +15,7 @@ import (
 	"github.com/AxMdv/go-gophermart/internal/model"
 	"github.com/AxMdv/go-gophermart/internal/service/accrual"
 	"github.com/AxMdv/go-gophermart/internal/service/auth"
+	"github.com/AxMdv/go-gophermart/internal/service/reward"
 	"github.com/AxMdv/go-gophermart/internal/storage"
 )
 
@@ -155,9 +156,9 @@ func (h *Handlers) CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	// err = h.accrualService.RewardRequest(order, h.config.AccrualSystemAddr+"/api/orders/"+order.ID)
 
-	task := &accrual.Task{
+	task := &reward.Task{
 		Order: order,
-		Addr:  h.config.AccrualSystemAddr + "/api/orders/" + order.ID,
+		Addr:  h.config.AccrualSystemAddr,
 	}
 	h.accrualService.RewardQueue.Push(task)
 	fmt.Println(err)
@@ -251,18 +252,21 @@ func (h *Handlers) CreateWithdraw(w http.ResponseWriter, r *http.Request) {
 	var withdrawal model.Withdrawal
 	err = json.Unmarshal(bodyBytes, &withdrawal)
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	orderID, err := strconv.Atoi(withdrawal.OrderID)
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
 
 	valid := h.accrualService.ValidateOrderID(orderID)
 	if !valid {
+		log.Println(err)
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
@@ -278,6 +282,7 @@ func (h *Handlers) CreateWithdraw(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusPaymentRequired)
 			return
 		}
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 

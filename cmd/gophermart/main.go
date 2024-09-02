@@ -10,6 +10,7 @@ import (
 	"github.com/AxMdv/go-gophermart/internal/handlers"
 	"github.com/AxMdv/go-gophermart/internal/router"
 	"github.com/AxMdv/go-gophermart/internal/service/accrual"
+	"github.com/AxMdv/go-gophermart/internal/service/reward"
 	"github.com/AxMdv/go-gophermart/internal/storage"
 )
 
@@ -24,7 +25,10 @@ func main() {
 		log.Panic("Failed to init repository ", err)
 	}
 
-	queue := accrual.NewRewardCollectionProcess()
+	queue, err := reward.NewRewardCollectionProcess(cfg.AccrualSystemAddr, repository)
+	if err != nil {
+		log.Panic("Failed to init repository ", err)
+	}
 
 	accrualService := accrual.New(repository, queue)
 

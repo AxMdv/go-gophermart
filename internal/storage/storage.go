@@ -8,6 +8,7 @@ import (
 
 	"github.com/AxMdv/go-gophermart/internal/config"
 	"github.com/AxMdv/go-gophermart/internal/model"
+
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -146,7 +147,7 @@ func (dr *DBRepository) GetUserBalance(ctx context.Context, userID string) (*mod
 	query := `
 	SELECT user_balance, user_withdrawn
 	FROM users
-	WHERE user_uuid = $1`
+	WHERE user_uuid = $1;`
 	row := dr.db.QueryRow(ctx, query, userID)
 
 	balance := model.Balance{}
@@ -182,33 +183,49 @@ func (dr *DBRepository) GetWithdrawalsByUserID(ctx context.Context, userID strin
 
 func (dr *DBRepository) CreateWithdraw(ctx context.Context, balance *model.Balance, withdrawal *model.Withdrawal) error {
 	query1 := `
-	UPDATE users (user_balance, user_withdrawn)
-	VALUES $1, $2
+	UPDATE users
+	SET user_balance = $1, user_withdrawn = $2
 	WHERE user_uuid = $3;`
 
 	query2 := `
 	INSERT INTO withdrawals (order_id, user_uuid, processed_at, amount) 
-	VALUES $1, $2, $3, $4;`
+	VALUES ($1, $2, $3, $4);`
 
 	tx, err := dr.db.Begin(ctx)
+
 	if err != nil {
+		tx.Rollback(ctx)
 		return err
 	}
-	defer tx.Rollback(ctx)
 
 	_, err = tx.Exec(ctx, query1, balance.Current, balance.Withdrawn, balance.UserUUID)
 	if err != nil {
+		tx.Rollback(ctx)
 		return err
 	}
 
 	_, err = tx.Exec(ctx, query2, withdrawal.OrderID, withdrawal.UserUUID, withdrawal.ProcessedAt, withdrawal.Amount)
 	if err != nil {
-		return tx.Rollback(ctx)
+		tx.Rollback(ctx)
+		return err
 	}
 
 	return tx.Commit(ctx)
 	// dr.db.Exec(ctx, query1, balance.Current, balance.Withdrawn, balance.UserUUID)
 
+}
+
+func (dr *DBRepository) UpdateUserBalance(ctx context.Context, order *model.Order) error {
+
+	query1 := `
+	UPDATE users
+	SET user_balance = user_balance + $1
+	WHERE user_uuid = $2;`
+	_, err := dr.db.Exec(ctx, query1, order.Accrual, order.UserUUID)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // func (dr *DBRepository) (ctx context.Context, user *model.User) error {}
