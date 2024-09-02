@@ -287,4 +287,5 @@ func (h *Handlers) CreateWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
+	w.WriteHeader(http.StatusOK)
 }
