@@ -88,6 +88,7 @@ func (w *Worker) Loop() {
 			log.Printf("error: %v\n", err)
 			break
 		}
+		log.Println("resp from accrual is ", resp)
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		order := &model.Order{
