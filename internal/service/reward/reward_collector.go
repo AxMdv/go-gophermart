@@ -135,6 +135,7 @@ func (r *Requester) RegisterOrder(orderID string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	fmt.Println("Попытка зарегать ", addr, reqBody, resp.StatusCode)
 	return err
 }
@@ -142,7 +143,7 @@ func (r *Requester) RegisterOrder(orderID string) error {
 func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardResponse, error) {
 
 	rr := &RewardResponse{}
-	url := fmt.Sprintf(addr + "/api/orders/" + order.ID)
+	url := addr + "/api/orders/" + order.ID
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		log.Println(err)
@@ -223,16 +224,16 @@ func NewRewardCollectionProcess(addr string, repository *storage.DBRepository) (
 }
 
 type Match struct {
-	Match       string `json:"match"`
-	Reward      int    `json:"reward"`
-	Reward_type string `json:"reward_type"`
+	Match      string `json:"match"`
+	Reward     int    `json:"reward"`
+	RewardType string `json:"reward_type"`
 }
 
 func RewardRegister(addr string) error {
 	match := &Match{
-		Match:       "Bork",
-		Reward:      10,
-		Reward_type: "%",
+		Match:      "Bork",
+		Reward:     10,
+		RewardType: "%",
 	}
 	body, err := json.Marshal(match)
 	if err != nil {
@@ -249,6 +250,7 @@ func RewardRegister(addr string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	fmt.Println("Попытка зарегать 10 % вознаграждения", resp.StatusCode)
 	return err
 }
