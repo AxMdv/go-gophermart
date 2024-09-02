@@ -101,6 +101,7 @@ func (w *Worker) Loop() {
 			log.Printf("error: %v\n", err)
 			break
 		}
+
 		err = w.repository.UpdateOrder(ctx, order)
 		if err != nil {
 			log.Printf("error: %v\n", err)
