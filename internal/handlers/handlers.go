@@ -134,7 +134,7 @@ func (h *Handlers) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	order := &model.Order{
 		UserUUID: id,
 		ID:       strconv.Itoa(orderID),
-		Status:   model.OrderStatusRegistered,
+		Status:   model.OrderStatusNew,
 	}
 
 	err = h.accrualService.CreateOrder(ctx, order)

@@ -35,4 +35,5 @@ var (
 	OrderStatusInvalid    = "INVALID"
 	OrderStatusProcessing = "PROCESSING"
 	OrderStatusProcessed  = "PROCESSED"
+	OrderStatusNew        = "NEW"
 )

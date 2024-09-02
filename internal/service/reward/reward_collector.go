@@ -168,7 +168,7 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardRespo
 			log.Println(err)
 			return rr, err
 		}
-
+		log.Println("resp status code from accrual is ", resp.StatusCode)
 		switch resp.StatusCode {
 		case 200:
 			bytes, err := io.ReadAll(resp.Body)
