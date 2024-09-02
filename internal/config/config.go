@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"os"
 )
 
 type Options struct {
@@ -18,15 +19,15 @@ func ParseOptions() *Options {
 
 	flag.Parse()
 
-	// if envRunAddr := os.Getenv("RUN_ADDRESS"); envRunAddr != "" {
-	// 	Options.RunAddr = envRunAddr
-	// }
-	// if envDataBaseURI := os.Getenv("DATABASE_URI"); envDataBaseURI != "" {
-	// 	Options.DataBaseURI = envDataBaseURI
-	// }
-	// if envAccrualSystemAddr := os.Getenv("ACCRUAL_SYSTEM_ADDRES"); envAccrualSystemAddr != "" {
-	// 	Options.AccrualSystemAddr = envAccrualSystemAddr
-	// }
+	if envRunAddr := os.Getenv("RUN_ADDRESS"); envRunAddr != "" {
+		Options.RunAddr = envRunAddr
+	}
+	if envDataBaseURI := os.Getenv("DATABASE_URI"); envDataBaseURI != "" {
+		Options.DataBaseURI = envDataBaseURI
+	}
+	if envAccrualSystemAddr := os.Getenv("ACCRUAL_SYSTEM_ADDRES"); envAccrualSystemAddr != "" {
+		Options.AccrualSystemAddr = envAccrualSystemAddr
+	}
 	return &Options
 }
 
