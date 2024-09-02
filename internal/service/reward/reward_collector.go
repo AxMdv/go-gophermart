@@ -80,12 +80,12 @@ func (w *Worker) Loop() {
 		t := w.queue.PopWait()
 		err := w.requester.RegisterOrder(t.Order.ID)
 		if err != nil {
-			fmt.Printf("error: %v\n", err)
+			log.Printf("error: %v\n", err)
 			continue
 		}
 		resp, err := w.requester.RewardRequest(t.Order, t.Addr)
 		if err != nil {
-			fmt.Printf("error: %v\n", err)
+			log.Printf("error: %v\n", err)
 			break
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -97,10 +97,10 @@ func (w *Worker) Loop() {
 		}
 		err = w.repository.UpdateUserBalance(ctx, order)
 		if err != nil {
-			fmt.Printf("error: %v\n", err)
+			log.Printf("error: %v\n", err)
 			break
 		}
-		fmt.Printf("worker #%d done request %v\n", w.id, t.Order)
+		log.Printf("worker #%d done request %v\n", w.id, t.Order)
 	}
 }
 
@@ -136,7 +136,7 @@ func (r *Requester) RegisterOrder(orderID string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	fmt.Println("Попытка зарегать ", addr, reqBody, resp.StatusCode)
+	log.Println("Попытка зарегать ", addr, reqBody, resp.StatusCode)
 	return err
 }
 
@@ -178,20 +178,20 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardRespo
 
 			switch rr.Status {
 			case model.OrderStatusRegistered:
-				fmt.Println("retry..")
+				log.Println("retry..")
 				continue
 			case model.OrderStatusInvalid:
 				return &rr, ErrOrderNotRegistered
 			case model.OrderStatusProcessing:
-				fmt.Println("retry..")
+				log.Println("retry..")
 				continue
 			case model.OrderStatusProcessed:
-				fmt.Println(rr.Status)
+				log.Println(rr.Status)
 
 				return &rr, nil
 
 			default:
-				fmt.Println(rr.Status, "default")
+				log.Println(rr.Status, "default")
 				continue
 			}
 
@@ -200,7 +200,7 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardRespo
 		case 429:
 			time.Sleep(60 * time.Second)
 		default:
-			fmt.Println("default branch .. status code is ", resp.StatusCode)
+			log.Println("default branch .. status code is ", resp.StatusCode)
 			return rr, errors.New("unexpected error")
 		}
 
@@ -251,7 +251,7 @@ func RewardRegister(addr string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	fmt.Println("Попытка зарегать 10 % вознаграждения", resp.StatusCode)
+	log.Println("Попытка зарегать 10 % вознаграждения", resp.StatusCode)
 	return err
 }
 
