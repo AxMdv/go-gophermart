@@ -228,5 +228,16 @@ func (dr *DBRepository) UpdateUserBalance(ctx context.Context, order *model.Orde
 	return nil
 }
 
-// func (dr *DBRepository) (ctx context.Context, user *model.User) error {}
+func (dr *DBRepository) UpdateOrder(ctx context.Context, order *model.Order) error {
+	query1 := `
+	UPDATE orders
+	SET order_status = $1, order_accrual = $2
+	WHERE order_id = $3;`
+	_, err := dr.db.Exec(ctx, query1, order.Status, order.Accrual, order.UserUUID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // func (dr *DBRepository) (ctx context.Context, user *model.User) error {}

@@ -15,7 +15,7 @@ func ParseOptions() *Options {
 	options := Options{}
 	flag.StringVar(&options.RunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&options.DataBaseURI, "d", "user=postgres password=adm dbname=postgres host=localhost port=5432 sslmode=disable", "dsn for acees to DB")
-	flag.StringVar(&options.AccrualSystemAddr, "r", "", "address of accrural system")
+	flag.StringVar(&options.AccrualSystemAddr, "r", "http://localhost:8081", "address of accrural system")
 
 	flag.Parse()
 
