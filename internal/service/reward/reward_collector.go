@@ -116,7 +116,11 @@ type Good struct {
 }
 
 func (r *Requester) RegisterOrder(orderID string) error {
+
 	addr := fmt.Sprintf("%s/api/orders", r.accrualAddr)
+	if !strings.HasPrefix(addr, "http://") {
+		addr = fmt.Sprintf("http://%s", addr)
+	}
 	reqBody := &RegisterOrders{
 		OrderID: orderID,
 		Goods:   []Good{{Description: "Bork чайник", Price: 100}},
