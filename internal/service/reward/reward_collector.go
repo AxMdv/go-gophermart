@@ -96,17 +96,17 @@ func (w *Worker) Loop() {
 			Accrual:  resp.Accrual,
 			Status:   resp.Status,
 		}
+		err = w.repository.UpdateOrder(ctx, order)
+		if err != nil {
+			log.Printf("error: %v\n", err)
+			break
+		}
 		err = w.repository.UpdateUserBalance(ctx, order)
 		if err != nil {
 			log.Printf("error: %v\n", err)
 			break
 		}
 
-		err = w.repository.UpdateOrder(ctx, order)
-		if err != nil {
-			log.Printf("error: %v\n", err)
-			break
-		}
 		log.Printf("worker #%d done request %v %v\n", w.id, t.Order, order)
 	}
 }
