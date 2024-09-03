@@ -80,10 +80,9 @@ func (w *Worker) Loop() {
 		resp, err := w.requester.RewardRequest(t.Order, t.Addr)
 		if err != nil {
 			log.Printf("error: %v\n", err)
-			break
+			continue
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
 		order := &model.Order{
 			ID:       t.Order.ID,
 			UserUUID: t.Order.UserUUID,
@@ -93,13 +92,14 @@ func (w *Worker) Loop() {
 		err = w.repository.UpdateOrder(ctx, order)
 		if err != nil {
 			log.Printf("error: %v\n", err)
-			break
+			continue
 		}
 		err = w.repository.UpdateUserBalance(ctx, order)
 		if err != nil {
 			log.Printf("error: %v\n", err)
-			break
+			continue
 		}
+		cancel()
 		log.Printf("worker #%d done request %v %v\n", w.id, t.Order, order)
 	}
 }
