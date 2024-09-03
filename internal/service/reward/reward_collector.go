@@ -78,11 +78,11 @@ func NewWorker(id int, queue *Queue, requester *Requester, repo *storage.DBRepos
 func (w *Worker) Loop() {
 	for {
 		t := w.queue.PopWait()
-		err := w.requester.RegisterOrder(t.Order.ID)
-		if err != nil {
-			log.Printf("error: %v\n", err)
-			continue
-		}
+		// err := w.requester.RegisterOrder(t.Order.ID)
+		// if err != nil {
+		// 	log.Printf("error: %v\n", err)
+		// 	continue
+		// }
 		resp, err := w.requester.RewardRequest(t.Order, t.Addr)
 		if err != nil {
 			log.Printf("error: %v\n", err)
