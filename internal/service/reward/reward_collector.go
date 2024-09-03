@@ -92,9 +92,9 @@ func (w *Worker) Loop() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		order := &model.Order{
-			UserUUID: t.Order.UserUUID,
-			Accrual:  resp.Accrual,
-			Status:   resp.Status,
+			ID:      t.Order.ID,
+			Accrual: resp.Accrual,
+			Status:  resp.Status,
 		}
 		err = w.repository.UpdateOrder(ctx, order)
 		if err != nil {

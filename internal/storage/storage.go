@@ -233,7 +233,7 @@ func (dr *DBRepository) UpdateOrder(ctx context.Context, order *model.Order) err
 	UPDATE orders
 	SET order_status = $1, order_accrual = $2
 	WHERE order_id = $3;`
-	_, err := dr.db.Exec(ctx, query1, order.Status, order.Accrual, order.UserUUID)
+	_, err := dr.db.Exec(ctx, query1, order.Status, order.Accrual, order.ID)
 	if err != nil {
 		return err
 	}
