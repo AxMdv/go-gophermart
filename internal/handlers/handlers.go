@@ -168,7 +168,7 @@ func (h *Handlers) CreateOrder(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) GetOrdersInfo(w http.ResponseWriter, r *http.Request) {
 	id := auth.GetUUIDFromContext(r.Context())
 
-	ctx, cancel := context.WithTimeout(context.Background(), 19*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 900*time.Millisecond)
 	defer cancel()
 	orders, err := h.accrualService.GetOrdersByUserID(ctx, id)
 	if err != nil {
