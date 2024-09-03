@@ -1,11 +1,9 @@
 package reward
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -78,17 +76,12 @@ func NewWorker(id int, queue *Queue, requester *Requester, repo *storage.DBRepos
 func (w *Worker) Loop() {
 	for {
 		t := w.queue.PopWait()
-		// err := w.requester.RegisterOrder(t.Order.ID)
-		// if err != nil {
-		// 	log.Printf("error: %v\n", err)
-		// 	continue
-		// }
+
 		resp, err := w.requester.RewardRequest(t.Order, t.Addr)
 		if err != nil {
 			log.Printf("error: %v\n", err)
 			break
 		}
-		log.Println("resp from accrual is ", resp)
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		order := &model.Order{
@@ -107,57 +100,14 @@ func (w *Worker) Loop() {
 			log.Printf("error: %v\n", err)
 			break
 		}
-
 		log.Printf("worker #%d done request %v %v\n", w.id, t.Order, order)
 	}
-}
-
-type RegisterOrders struct {
-	OrderID string `json:"order"`
-	Goods   []Good `json:"goods"`
-}
-
-type Good struct {
-	Description string `json:"description"`
-	Price       int    `json:"price"`
-}
-
-func (r *Requester) RegisterOrder(orderID string) error {
-
-	addr := fmt.Sprintf("%s/api/orders", r.accrualAddr)
-	// if !strings.HasPrefix(addr, "http://") {
-	// 	addr = fmt.Sprintf("http://%s", addr)
-	// }
-	reqBody := &RegisterOrders{
-		OrderID: orderID,
-		Goods:   []Good{{Description: "Bork чайник", Price: 100}},
-	}
-	body, err := json.Marshal(reqBody)
-	if err != nil {
-		return err
-	}
-	rdr := bytes.NewReader(body)
-	req, err := http.NewRequest(http.MethodPost, addr, rdr)
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	log.Println("Попытка зарегать ", addr, reqBody, resp.StatusCode)
-	return err
 }
 
 func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardResponse, error) {
 
 	rr := &RewardResponse{}
-	// if !strings.HasPrefix(addr, "http://") {
-	// 	addr = fmt.Sprintf("http://%s", addr)
-	// }
+
 	url := addr + "/api/orders/" + order.ID
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -175,7 +125,6 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardRespo
 			log.Println(err)
 			return rr, err
 		}
-		log.Println("resp status code from accrual is ", resp.StatusCode)
 		switch resp.StatusCode {
 		case 200:
 			bytes, err := io.ReadAll(resp.Body)
@@ -209,7 +158,6 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardRespo
 				log.Println(rr.Status, "default")
 				continue
 			}
-
 		case 204:
 			return rr, ErrOrderNotRegistered
 		case 429:
@@ -218,7 +166,6 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardRespo
 			log.Println("default branch .. status code is ", resp.StatusCode)
 			return rr, errors.New("unexpected error")
 		}
-
 	}
 	return rr, err
 }
@@ -226,51 +173,12 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardRespo
 func NewRewardCollectionProcess(addr string, repository *storage.DBRepository) (*Queue, error) {
 
 	queue := NewQueue()
-	// err := RewardRegister(fmt.Sprintf("%s/api/goods", addr))
-	// if err != nil {
-	// 	return &Queue{}, err
-	// }
 
 	for i := 0; i < numberWorkers; i++ {
 		w := NewWorker(i, queue, NewRequester(addr), repository)
 		go w.Loop()
 	}
 	return queue, nil
-}
-
-type Match struct {
-	Match      string `json:"match"`
-	Reward     int    `json:"reward"`
-	RewardType string `json:"reward_type"`
-}
-
-func RewardRegister(addr string) error {
-	match := &Match{
-		Match:      "Bork",
-		Reward:     10,
-		RewardType: "%",
-	}
-	body, err := json.Marshal(match)
-	if err != nil {
-		return err
-	}
-	rdr := bytes.NewReader(body)
-	// if !strings.HasPrefix(addr, "http://") {
-	// 	addr = fmt.Sprintf("http://%s", addr)
-	// }
-	req, err := http.NewRequest(http.MethodPost, addr, rdr)
-	req.Header.Add("Content-Type", "application/json")
-	if err != nil {
-		return err
-	}
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	log.Println("Попытка зарегать 10 % вознаграждения", resp.StatusCode)
-	return err
 }
 
 var ErrOrderNotRegistered = errors.New("204")
