@@ -47,6 +47,7 @@ func (a *AccrualService) Loop() {
 		resp, err := a.requester.RewardRequest(t.Order, t.Addr)
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		if err != nil {
+			log.Printf("error: %v\n", err)
 			if errors.Is(err, ErrOrderNotRegistered) {
 				order := &model.Order{
 					ID:       t.Order.ID,
