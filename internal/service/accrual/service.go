@@ -45,11 +45,27 @@ func (a *AccrualService) Loop() {
 		}
 
 		resp, err := a.requester.RewardRequest(t.Order, t.Addr)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		if err != nil {
+			if errors.Is(err, ErrOrderNotRegistered) {
+				order := &model.Order{
+					ID:       t.Order.ID,
+					UserUUID: t.Order.UserUUID,
+					Accrual:  0,
+					Status:   model.OrderStatusInvalid,
+				}
+				err = a.repository.UpdateOrder(ctx, order)
+				if err != nil {
+					log.Printf("error: %v\n", err)
+					a.Queue.RemoveLastCompleted()
+					continue
+				}
+
+			}
 			log.Printf("error: %v\n", err)
+			a.Queue.RemoveLastCompleted()
 			continue
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		order := &model.Order{
 			ID:       t.Order.ID,
 			UserUUID: t.Order.UserUUID,
@@ -59,14 +75,17 @@ func (a *AccrualService) Loop() {
 		err = a.repository.UpdateOrder(ctx, order)
 		if err != nil {
 			log.Printf("error: %v\n", err)
+			a.Queue.RemoveLastCompleted()
 			continue
 		}
 		err = a.repository.UpdateUserBalance(ctx, order)
 		if err != nil {
 			log.Printf("error: %v\n", err)
+			a.Queue.RemoveLastCompleted()
 			continue
 		}
 		cancel()
+		a.Queue.RemoveLastCompleted()
 		log.Printf("accrual worker done request %v %v\n", t.Order, order)
 	}
 }
