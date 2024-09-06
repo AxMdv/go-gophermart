@@ -1,4 +1,4 @@
-package accrual
+package gophermart
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	"github.com/AxMdv/go-gophermart/internal/storage"
 )
 
-func (a *AccrualService) LoginUser(ctx context.Context, user *model.User) (userID string, err error) {
+func (g *GophermartService) LoginUser(ctx context.Context, user *model.User) (userID string, err error) {
 	reqUser := user
-	dbUser, err := a.repository.GetUserAuthData(ctx, user)
+	dbUser, err := g.repository.GetUserAuthData(ctx, user)
 	if err != nil {
 		if errors.Is(err, storage.ErrNoAuthData) {
 			return "", ErrInvalidAuthData

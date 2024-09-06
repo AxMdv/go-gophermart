@@ -15,17 +15,19 @@ import (
 	"github.com/AxMdv/go-gophermart/internal/model"
 	"github.com/AxMdv/go-gophermart/internal/service/accrual"
 	"github.com/AxMdv/go-gophermart/internal/service/auth"
-	"github.com/AxMdv/go-gophermart/internal/service/reward"
+	"github.com/AxMdv/go-gophermart/internal/service/gophermart"
+
 	"github.com/AxMdv/go-gophermart/internal/storage"
 )
 
 type Handlers struct {
-	accrualService *accrual.AccrualService
-	config         *config.Options
+	gophermartService *gophermart.GophermartService
+	accrualService    *accrual.AccrualService
+	config            *config.Config
 }
 
-func New(a *accrual.AccrualService, c *config.Options) *Handlers {
-	return &Handlers{accrualService: a, config: c}
+func New(a *gophermart.GophermartService, c *config.Config) *Handlers {
+	return &Handlers{gophermartService: a, config: c}
 }
 
 func (h *Handlers) RegisterUser(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +50,7 @@ func (h *Handlers) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	uuid, err := h.accrualService.RegisterUser(ctx, &user)
+	uuid, err := h.gophermartService.RegisterUser(ctx, &user)
 	if err != nil {
 		if errors.Is(err, storage.ErrLoginDuplicate) {
 			w.WriteHeader(http.StatusConflict)
@@ -85,9 +87,9 @@ func (h *Handlers) LoginUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	userID, err := h.accrualService.LoginUser(ctx, &user)
+	userID, err := h.gophermartService.LoginUser(ctx, &user)
 	if err != nil {
-		if errors.Is(err, accrual.ErrInvalidAuthData) {
+		if errors.Is(err, gophermart.ErrInvalidAuthData) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -120,7 +122,7 @@ func (h *Handlers) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	valid := h.accrualService.ValidateOrderID(orderID)
+	valid := h.gophermartService.ValidateOrderID(orderID)
 	if !valid {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
@@ -137,13 +139,13 @@ func (h *Handlers) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		Status:   model.OrderStatusNew,
 	}
 
-	err = h.accrualService.CreateOrder(ctx, order)
+	err = h.gophermartService.CreateOrder(ctx, order)
 	if err != nil {
-		if errors.Is(err, accrual.ErrOrderCreatedByCurrentUser) {
+		if errors.Is(err, gophermart.ErrOrderCreatedByCurrentUser) {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		if errors.Is(err, accrual.ErrOrderCreatedByAnotherUser) {
+		if errors.Is(err, gophermart.ErrOrderCreatedByAnotherUser) {
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
@@ -152,15 +154,11 @@ func (h *Handlers) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// accrual.InputCh <- order
-
-	// err = h.accrualService.RewardRequest(order, h.config.AccrualSystemAddr+"/api/orders/"+order.ID)
-
-	task := &reward.Task{
+	task := &accrual.Task{
 		Order: order,
 		Addr:  h.config.AccrualSystemAddr,
 	}
-	h.accrualService.RewardQueue.Push(task)
+	h.accrualService.Queue.Push(task)
 	fmt.Println(err)
 	w.WriteHeader(http.StatusAccepted)
 }
@@ -168,9 +166,9 @@ func (h *Handlers) CreateOrder(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) GetOrdersInfo(w http.ResponseWriter, r *http.Request) {
 	id := auth.GetUUIDFromContext(r.Context())
 
-	// ctx, cancel := context.WithTimeout(context.Background(), 900*time.Millisecond)
-	// defer cancel()
-	orders, err := h.accrualService.GetOrdersByUserID(r.Context(), id)
+	ctx, cancel := context.WithTimeout(context.Background(), 900*time.Millisecond)
+	defer cancel()
+	orders, err := h.gophermartService.GetOrdersByUserID(ctx, id)
 	if err != nil {
 		if errors.Is(err, storage.ErrNoOrders) {
 			w.WriteHeader(http.StatusNoContent)
@@ -197,7 +195,7 @@ func (h *Handlers) GetWithdrawalsInfo(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
-	withdrawals, err := h.accrualService.GetWithdrawalsInfo(ctx, userID)
+	withdrawals, err := h.gophermartService.GetWithdrawalsInfo(ctx, userID)
 	if err != nil {
 		if errors.Is(err, storage.ErrNoWithdrawalsData) {
 			w.WriteHeader(http.StatusNoContent)
@@ -221,7 +219,7 @@ func (h *Handlers) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 	id := auth.GetUUIDFromContext(r.Context())
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
-	balance, err := h.accrualService.GetUserBalance(ctx, id)
+	balance, err := h.gophermartService.GetUserBalance(ctx, id)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -265,7 +263,7 @@ func (h *Handlers) CreateWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	valid := h.accrualService.ValidateOrderID(orderID)
+	valid := h.gophermartService.ValidateOrderID(orderID)
 	if !valid {
 		log.Println(err)
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -277,9 +275,9 @@ func (h *Handlers) CreateWithdraw(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
-	err = h.accrualService.CreateWithdraw(ctx, &withdrawal)
+	err = h.gophermartService.CreateWithdraw(ctx, &withdrawal)
 	if err != nil {
-		if errors.Is(err, accrual.ErrLowBalance) {
+		if errors.Is(err, gophermart.ErrLowBalance) {
 			w.WriteHeader(http.StatusPaymentRequired)
 			return
 		}

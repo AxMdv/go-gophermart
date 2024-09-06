@@ -1,4 +1,4 @@
-package accrual
+package gophermart
 
 import (
 	"context"
@@ -10,20 +10,20 @@ import (
 	"github.com/theplant/luhn"
 )
 
-func (a *AccrualService) ValidateOrderID(orderID int) (valid bool) {
+func (a *GophermartService) ValidateOrderID(orderID int) (valid bool) {
 
 	valid = luhn.Valid(orderID)
 	return valid
 }
 
-func (a *AccrualService) CreateOrder(ctx context.Context, order *model.Order) (err error) {
+func (g *GophermartService) CreateOrder(ctx context.Context, order *model.Order) (err error) {
 	// t := time.Now()
 	// order.UploadedAt = t.Format(time.RFC3339)
 	order.UploadedAt = time.Now()
-	id, err := a.repository.GetOrderByID(ctx, order)
+	id, err := g.repository.GetOrderByID(ctx, order)
 	if err != nil {
 		if errors.Is(err, storage.ErrNoOrder) {
-			err = a.repository.CreateOrder(ctx, order)
+			err = g.repository.CreateOrder(ctx, order)
 			return err
 		}
 		return err
@@ -34,8 +34,8 @@ func (a *AccrualService) CreateOrder(ctx context.Context, order *model.Order) (e
 	return ErrOrderCreatedByAnotherUser
 }
 
-func (a *AccrualService) GetOrdersByUserID(ctx context.Context, userID string) (orders []model.Order, err error) {
-	orders, err = a.repository.GetOrdersByUserID(ctx, userID)
+func (g *GophermartService) GetOrdersByUserID(ctx context.Context, userID string) (orders []model.Order, err error) {
+	orders, err = g.repository.GetOrdersByUserID(ctx, userID)
 	return orders, err
 }
 

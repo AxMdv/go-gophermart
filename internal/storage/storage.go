@@ -19,7 +19,7 @@ type DBRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewRepository(ctx context.Context, config *config.Options) (*DBRepository, error) {
+func NewRepository(ctx context.Context, config *config.Config) (*DBRepository, error) {
 	pool, err := pgxpool.New(context.Background(), config.DataBaseURI)
 	if err != nil {
 		return &DBRepository{}, err
@@ -54,17 +54,11 @@ func (dr *DBRepository) RegisterUser(ctx context.Context, user *model.User) erro
 	INSERT INTO users (user_login, user_password, user_uuid)
 	VALUES ($1, $2, $3);`
 	_, err := dr.db.Exec(ctx, query, user.Login, user.Password, user.UUID)
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			if pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
-				return ErrLoginDuplicate
-			}
-		}
-		return err
+	var pgErr *pgconn.PgError
+	if err != nil && errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
+		return ErrLoginDuplicate
 	}
-	return nil
-
+	return err
 }
 
 func (dr *DBRepository) GetUserAuthData(ctx context.Context, reqUser *model.User) (dbUser *model.User, err error) {

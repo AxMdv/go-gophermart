@@ -1,4 +1,4 @@
-package accrual
+package gophermart
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (a *AccrualService) RegisterUser(ctx context.Context, user *model.User) (newUUID string, err error) {
+func (g *GophermartService) RegisterUser(ctx context.Context, user *model.User) (newUUID string, err error) {
 	id, err := createUUID()
 	if err != nil {
 		return "", err
@@ -15,7 +15,7 @@ func (a *AccrualService) RegisterUser(ctx context.Context, user *model.User) (ne
 	newUUID = id.String()
 	user.UUID = newUUID
 
-	err = a.repository.RegisterUser(ctx, user)
+	err = g.repository.RegisterUser(ctx, user)
 	return newUUID, err
 }
 

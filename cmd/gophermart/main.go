@@ -7,12 +7,12 @@ import (
 )
 
 func main() {
-	app, err := app.New()
+	a, err := app.New()
 	if err != nil {
 		log.Panic(err)
 	}
 
-	err = app.Run()
+	err = a.Run()
 	if err != nil {
 		log.Panic(err)
 	}

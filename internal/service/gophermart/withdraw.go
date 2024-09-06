@@ -1,4 +1,4 @@
-package accrual
+package gophermart
 
 import (
 	"context"
@@ -8,13 +8,13 @@ import (
 	"github.com/AxMdv/go-gophermart/internal/model"
 )
 
-func (a *AccrualService) GetWithdrawalsInfo(ctx context.Context, userID string) ([]model.Withdrawal, error) {
-	withdrawals, err := a.repository.GetWithdrawalsByUserID(ctx, userID)
+func (g *GophermartService) GetWithdrawalsInfo(ctx context.Context, userID string) ([]model.Withdrawal, error) {
+	withdrawals, err := g.repository.GetWithdrawalsByUserID(ctx, userID)
 	return withdrawals, err
 }
 
-func (a *AccrualService) CreateWithdraw(ctx context.Context, withdrawal *model.Withdrawal) error {
-	userBalance, err := a.repository.GetUserBalance(ctx, withdrawal.UserUUID)
+func (g *GophermartService) CreateWithdraw(ctx context.Context, withdrawal *model.Withdrawal) error {
+	userBalance, err := g.repository.GetUserBalance(ctx, withdrawal.UserUUID)
 	if err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func (a *AccrualService) CreateWithdraw(ctx context.Context, withdrawal *model.W
 	userBalance.Withdrawn += withdrawal.Amount
 	userBalance.UserUUID = withdrawal.UserUUID
 	withdrawal.ProcessedAt = time.Now()
-	err = a.repository.CreateWithdraw(ctx, userBalance, withdrawal)
+	err = g.repository.CreateWithdraw(ctx, userBalance, withdrawal)
 	return err
 }
 

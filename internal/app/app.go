@@ -10,18 +10,15 @@ import (
 	"github.com/AxMdv/go-gophermart/internal/handlers"
 	"github.com/AxMdv/go-gophermart/internal/router"
 	"github.com/AxMdv/go-gophermart/internal/service/accrual"
-	"github.com/AxMdv/go-gophermart/internal/service/reward"
+	"github.com/AxMdv/go-gophermart/internal/service/gophermart"
+
 	"github.com/AxMdv/go-gophermart/internal/storage"
 	"github.com/go-chi/chi"
 )
 
 type App struct {
-	cfg            *config.Options
-	repository     *storage.DBRepository
-	queue          *reward.Queue
-	accrualService *accrual.AccrualService
-	handlers       *handlers.Handlers
-	router         *chi.Mux
+	cfg    *config.Config
+	router *chi.Mux
 }
 
 func New() (*App, error) {
@@ -36,25 +33,17 @@ func New() (*App, error) {
 		return app, err
 	}
 
-	queue, err := reward.NewRewardCollectionProcess(cfg.AccrualSystemAddr, repository)
-	if err != nil {
-		return app, err
+	_ = accrual.NewService(cfg.AccrualSystemAddr, repository)
 
-	}
+	gophermartService := gophermart.New(repository)
 
-	accrualService := accrual.New(repository, queue)
-
-	handlers := handlers.New(accrualService, cfg)
+	handlers := handlers.New(gophermartService, cfg)
 
 	router := router.New(handlers)
 
 	app = &App{
-		cfg:            cfg,
-		repository:     repository,
-		queue:          queue,
-		accrualService: accrualService,
-		handlers:       handlers,
-		router:         router,
+		cfg:    cfg,
+		router: router,
 	}
 	return app, nil
 }
