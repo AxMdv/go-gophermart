@@ -61,11 +61,11 @@ func (a *AccrualService) Loop() {
 					a.Queue.RemoveLastCompleted()
 					continue
 				}
-
+				a.Queue.RemoveLastCompleted()
+				continue
 			}
 			log.Printf("error: %v\n", err)
-			a.Queue.RemoveLastCompleted()
-			continue
+
 		}
 		order := &model.Order{
 			ID:       t.Order.ID,

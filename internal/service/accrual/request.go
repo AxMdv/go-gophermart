@@ -48,10 +48,11 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardRespo
 			log.Println(err)
 			return rr, err
 		}
+
 		switch resp.StatusCode {
 		case 200:
 			bytes, err := io.ReadAll(resp.Body)
-			defer resp.Body.Close()
+			resp.Body.Close()
 			if err != nil {
 				log.Println(err)
 				return rr, err

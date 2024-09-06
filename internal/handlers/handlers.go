@@ -26,8 +26,8 @@ type Handlers struct {
 	config            *config.Config
 }
 
-func New(a *gophermart.GophermartService, c *config.Config) *Handlers {
-	return &Handlers{gophermartService: a, config: c}
+func New(g *gophermart.GophermartService, c *config.Config) *Handlers {
+	return &Handlers{gophermartService: g, config: c}
 }
 
 func (h *Handlers) RegisterUser(w http.ResponseWriter, r *http.Request) {
@@ -149,7 +149,6 @@ func (h *Handlers) CreateOrder(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
-		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

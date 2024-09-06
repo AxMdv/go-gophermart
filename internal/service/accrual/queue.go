@@ -19,7 +19,7 @@ func (q *Queue) PopWait() (*Task, bool) {
 	q.mu.RLock()
 	l := q.buffer
 	q.mu.RUnlock()
-	if len(q.buffer) > 0 {
+	if len(l) > 0 {
 		return &l[0], true
 	}
 	return nil, false
