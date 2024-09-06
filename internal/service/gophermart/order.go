@@ -10,7 +10,7 @@ import (
 	"github.com/theplant/luhn"
 )
 
-func (a *GophermartService) ValidateOrderID(orderID int) (valid bool) {
+func (g *GophermartService) ValidateOrderID(orderID int) (valid bool) {
 
 	valid = luhn.Valid(orderID)
 	return valid
