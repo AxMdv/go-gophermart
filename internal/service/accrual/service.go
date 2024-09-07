@@ -3,7 +3,6 @@ package accrual
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -44,7 +43,6 @@ func (a *AccrualService) Loop() {
 		if !found {
 			continue
 		}
-		fmt.Println("успешно взяли")
 		resp, err := a.requester.RewardRequest(t.Order, t.Addr)
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		if err != nil {
