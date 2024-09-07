@@ -49,23 +49,8 @@ func (a *AccrualService) Loop() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		if err != nil {
 			log.Printf("error: %v\n", err)
-			if errors.Is(err, ErrOrderNotRegistered) {
-				order := &model.Order{
-					ID:       t.Order.ID,
-					UserUUID: t.Order.UserUUID,
-					Accrual:  0,
-					Status:   model.OrderStatusInvalid,
-				}
-				err = a.repository.UpdateOrder(ctx, order)
-				if err != nil {
-					log.Printf("error: %v\n", err)
-					a.Queue.RemoveLastCompleted()
-					continue
-				}
-				a.Queue.RemoveLastCompleted()
-				continue
-			}
-			log.Printf("error: %v\n", err)
+			a.Queue.RemoveLastCompleted()
+			continue
 
 		}
 		order := &model.Order{
