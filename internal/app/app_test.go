@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestE2E(t *testing.T) {
+func TestRegister(t *testing.T) {
 
 	// init app
 	go func() {
