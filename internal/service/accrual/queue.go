@@ -1,6 +1,9 @@
 package accrual
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 type Queue struct {
 	mu     sync.RWMutex
@@ -20,6 +23,7 @@ func (q *Queue) PopWait() (*Task, bool) {
 	l := q.buffer
 	q.mu.RUnlock()
 	if len(l) > 0 {
+		fmt.Println("берем из очереди")
 		return &l[0], true
 	}
 	return nil, false
@@ -27,9 +31,11 @@ func (q *Queue) PopWait() (*Task, bool) {
 
 func (q *Queue) Push(t *Task) {
 	// добавляем задачу
+	fmt.Println("кладём 1")
 	q.mu.Lock()
 	q.buffer = append(q.buffer, *t)
 	q.mu.Unlock()
+	fmt.Println("кладём в очередь")
 }
 
 func (q *Queue) RemoveLastCompleted() {

@@ -33,11 +33,11 @@ func New() (*App, error) {
 		return app, err
 	}
 
-	_ = accrual.NewService(cfg.AccrualSystemAddr, repository)
+	accrualService := accrual.NewService(cfg.AccrualSystemAddr, repository)
 
 	gophermartService := gophermart.New(repository)
 
-	handlers := handlers.New(gophermartService, cfg)
+	handlers := handlers.New(gophermartService, cfg, accrualService)
 
 	router := router.New(handlers)
 

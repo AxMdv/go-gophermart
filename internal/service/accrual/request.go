@@ -42,6 +42,7 @@ func (r *Requester) RewardRequest(order *model.Order, addr string) (*RewardRespo
 	client := &http.Client{}
 
 	for {
+		log.Printf("request:%v\n", req)
 		resp, err := client.Do(req)
 		log.Printf("creating request: %v\n response: %v", req, resp)
 		if err != nil {
